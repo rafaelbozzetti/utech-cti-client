@@ -4,17 +4,29 @@ chdir(__DIR__ . '/..');
 
 require 'vendor/autoload.php';
 
-$protocol = 'tcp';
-$url = '127.0.0.1';
-$port = '8000';
-$uri = "$protocol://$url:$port";
 
-$user = '2000';
-$password = '12345';
+/* load extenal settings*/
+$conf = parse_ini_file('conf/config.ini', true);
 
+
+/* This is a test file */
+$protocol = $conf['socket']['protocol'];
+$server = $conf['socket']['server'];
+$port = $conf['socket']['port'];
+$uri = "$protocol://$server:$port";
+
+
+/* connection */
 $factory = new \Utech\Cti\Factory();
 $socket = $factory->createClient("$uri");
 
+
+$user = $conf['user']['user'];
+$password = $conf['user']['password'];
+
+
+/* test commands */
 $resp = $socket->login($user, $password);
+print_r($resp);
 
 $socket->close();
