@@ -121,7 +121,7 @@ class Socket extends \Socket\Raw\Socket
 
 			break;
 			case 'alternate':
-				$return = $this->status();
+				$return = $this->alternate();
 
 			break;
 			case 'reconnect':
