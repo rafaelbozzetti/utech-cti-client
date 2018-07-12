@@ -24,6 +24,123 @@ use \InvalidArgumentException;
 class Socket extends \Socket\Raw\Socket
 {
 
+	/* Parser contants definition */
+    const READING_COMMAND = 0;
+    const READING_ATTRIBUTE = 1;
+    const READING_VALUE = 2;
+
+	/**
+	 * Utech's C++ code ported to PHP
+	 */
+	public function parser($cmd, $len) {
+
+	    $state = READING_COMMAND;
+	    $p = Array();
+	    $l = $cmd;
+	    $v = null;
+	    $k = 0;
+	    $j = 0;
+
+	    for ($i = 0; $i <= $len; $i++) {
+	        if ($cmd[$i] == ' ' || $i == $len) {
+	            switch ($state) {
+	                case READING_COMMAND:
+	                    $p[$k++] = substr($l, 0, $i);
+	                    $l = substr($cmd, $i + 1);
+	                    $state = READING_ATTRIBUTE;
+	                    $j = $i + 1;
+	                    break;
+	                case READING_ATTRIBUTE:
+	                    $l = substr($cmd, $i + 1);
+	                    $j = $i + 1;
+	                    break;
+	                case READING_VALUE:
+	                    if ($v[0] != '"' || $cmd[$i-1] == '"') {
+	                        $p[$k++] = substr($l, 0, $i - $j);
+	                        $l = substr($cmd, $i + 1);
+	                        $state = READING_ATTRIBUTE;
+	                        $j = $i + 1;
+	                    }
+	                    break;
+	            }
+	        } else if ($cmd[$i] == ':') {
+	            if ($state == READING_ATTRIBUTE) {
+	                $v = substr($cmd, $i + 1);
+	                $state = READING_VALUE;
+	            }
+	        }
+	    }
+	    return $p;
+	}
+
+	/**
+	* Send Command method.
+	*
+	* @param String $command Command to send .
+	* @param Array  $parameters Parameters key/value to send.
+	*
+	* @return Array
+	**/	
+	public function send_command($cmd)
+	{
+		switch($cmd['command']) {
+			case 'login':
+				$return = $this->login($cmd['user'], $cmd['password']);
+
+			break;
+			case 'logoff':
+				$return = $this->logoff();
+
+			break;
+			case 'status':
+				$return = $this->status();
+
+			break;
+			case 'make_call':
+				$return = $this->make_call($cmd['destination']);
+
+			break;
+			case 'redial':
+				$return = $this->redial($cmd['callid']);
+
+			break;
+			case 'deflect':
+				$return = $this->deflect($cmd['callid']);
+
+			break;
+			case 'drop':
+				$return = $this->drop($cmd['callid']);
+
+			break;
+			case 'hold':
+				$return = $this->hold($cmd['callid']);
+
+			break;
+			case 'retrieve':
+				$return = $this->retrieve($cmd['callid']);
+
+			break;
+			case 'alternate':
+				$return = $this->status();
+
+			break;
+			case 'reconnect':
+				$return = $this->reconnect();
+
+			break;
+			case 'conference':
+				$return = $this->conference();
+
+			break;
+			case 'blind_transfer':
+				$return = $this->blind_transfer($cmd['callid'], $cmd['conference']);
+
+			break;
+		}	
+
+		return $this->parser($return, strlen($return));
+	}
+
 	/**
 	* Login a CTI User. Must be performed before sending commands.
 	*
@@ -36,7 +153,7 @@ class Socket extends \Socket\Raw\Socket
 	public function login($user, $password)
 	{
 		$this->write("LOGIN USER:$user PASSWORD:$password\r\n\r\n");
-		return $this->read(2048);
+		return $this->read(8192);
 	}
 
 
@@ -48,7 +165,7 @@ class Socket extends \Socket\Raw\Socket
 	public function logoff()
 	{
 		$this->write("LOGOFF\r\n\r\n");
-		return $this->read(2048);
+		return $this->read(8192);
 	}
 
 
@@ -60,7 +177,7 @@ class Socket extends \Socket\Raw\Socket
 	public function status()
 	{
 		$this->write("STATUS\r\n\r\n");
-		return $this->read(2048);
+		return $this->read(8192);
 	}
 
 
@@ -85,9 +202,9 @@ class Socket extends \Socket\Raw\Socket
 	* @return string
 	**/
 
-	public function redial($calleid)
+	public function redial($callid)
 	{
-		$this->write("ANSWER CALLEID:$calleid\r\n\r\n");
+		$this->write("ANSWER CALLEID:$callid\r\n\r\n");
 		return $this->read(2048);
 	}
 
@@ -101,7 +218,7 @@ class Socket extends \Socket\Raw\Socket
 
 	public function deflect($callid)
 	{
-		$this->write("DEFLECT CALLEID:$calleid\r\n\r\n");
+		$this->write("DEFLECT CALLEID:$callid\r\n\r\n");
 		return $this->read(2048);
 	}
 
@@ -115,7 +232,7 @@ class Socket extends \Socket\Raw\Socket
 
 	public function drop($callid)
 	{
-		$this->write("DROP CALLEID:$calleid\r\n\r\n");
+		$this->write("DROP CALLEID:$callid\r\n\r\n");
 		return $this->read(2048);
 	}
 
@@ -129,7 +246,7 @@ class Socket extends \Socket\Raw\Socket
 
 	public function hold($callid)
 	{
-		$this->write("HOLD CALLEID:$calleid\r\n\r\n");
+		$this->write("HOLD CALLEID:$callid\r\n\r\n");
 		return $this->read(2048);
 	}
 
@@ -143,7 +260,7 @@ class Socket extends \Socket\Raw\Socket
 
 	public function retrieve($callid)
 	{
-		$this->write("RETRIEVE CALLEID:$calleid\r\n\r\n");
+		$this->write("RETRIEVE CALLEID:$callid\r\n\r\n");
 		return $this->read(2048);
 	}
 

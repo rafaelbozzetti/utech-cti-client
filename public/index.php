@@ -18,7 +18,7 @@ $uri = "$protocol://$server:$port";
 
 /* connection */
 $factory = new \Utech\Cti\Factory();
-$socket = $factory->createClient("$uri");
+$socket = $factory->createClient("$uri", "tcp");
 
 
 $user = $conf['user']['user'];
@@ -26,7 +26,18 @@ $password = $conf['user']['password'];
 
 
 /* test commands */
-$resp = $socket->login($user, $password);
+$cmd = array('command'=>'login', 'user'=>$user, 'password'=>$password);
+$resp = $socket->send_command($cmd);
 print_r($resp);
 
+
+/* make call */
+// $cmd = array('command'=>'make_call', 'destination'=>'996538098');
+// $resp = $socket->send_command($cmd);
+// print_r($resp);
+
+
+$resp = $socket->logoff();
+
+/* close socket */
 $socket->close();
